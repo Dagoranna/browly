@@ -4,7 +4,7 @@
     "type": "git",
     "url": "https://github.com/Dagoranna/browly.git"
   },  
-  "version": "1.0.2",
+  "version": "1.0.3",
   "style": "dist/browly.css",
   "sass": "scss/style.scss",
   "exports": {
