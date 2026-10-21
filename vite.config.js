@@ -10,6 +10,15 @@ export default defineConfig({
   build: {
     outDir: "dist",
     assetsDir: "",
+    rollupOptions: {
+      output: {
+        assetFileNames: (assetInfo) => {
+          const name = assetInfo.names?.[0] ?? assetInfo.name ?? "";
+          if (name.endsWith(".css")) return "browly.css";
+          return "[name]-[hash][extname]";
+        },
+      },
+    },
   },
   server: {
     open: true,

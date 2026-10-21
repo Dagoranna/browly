@@ -1,0 +1,65 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check if version is new
+        id: check
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          PUBLISHED=$(npm view "$NAME@$VERSION" version 2>/dev/null || true)
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if [ -z "$PUBLISHED" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create source archive
+        if: steps.check.outputs.changed == 'true'
+        run: zip -r source.zip . -x ".git/*"
+
+      - name: Create Release
+        if: steps.check.outputs.changed == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.check.outputs.version }}
+          name: Release v${{ steps.check.outputs.version }}
+          files: source.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update npm
+        if: steps.check.outputs.changed == 'true'
+        run: npm install -g npm@latest
+
+      - name: Install and build
+        if: steps.check.outputs.changed == 'true'
+        run: |
+          npm ci
+          npm run build --if-present
+
+      - name: Publish to npm
+        if: steps.check.outputs.changed == 'true'
+        run: npm publish --access public
